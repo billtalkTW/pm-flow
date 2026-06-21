@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>專案管理（PM）流程架構總覽</title>
+<style>
+  :root{
+    --bg:#0f1729; --panel:#1a2438; --panel2:#222f49; --line:#33415c;
+    --text:#e6ecf5; --muted:#94a3b8;
+    --c-init:#6366f1; --c-plan:#0ea5e9; --c-exec:#10b981; --c-mon:#f59e0b; --c-close:#ef4444;
+    --up:#22c55e; --down:#38bdf8;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--text);
+    font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;}
+  header{padding:20px 26px 8px;}
+  h1{margin:0 0 4px;font-size:22px;letter-spacing:.5px;}
+  .sub{color:var(--muted);font-size:13px;margin-bottom:12px;line-height:1.5;}
+  .legend{display:flex;flex-wrap:wrap;gap:14px;margin-bottom:6px;font-size:13px;align-items:center;}
+  .legend .item{display:flex;align-items:center;gap:6px;}
+  .dot{width:13px;height:13px;border-radius:3px;display:inline-block;}
+  .legend .ar{width:24px;height:0;border-top:3px solid var(--up);display:inline-block;}
+  .legend .ar.d{border-top-color:var(--down);}
+  .flowbar{display:flex;align-items:center;gap:6px;padding:4px 26px 14px;flex-wrap:wrap;}
+  .flowbar .step{padding:6px 14px;border-radius:20px;font-size:13px;font-weight:600;color:#fff;}
+  .flowbar .arrow{color:var(--muted);font-size:16px;}
+  .wrap{position:relative;overflow:auto;padding:0 18px 30px;}
+  table{border-collapse:separate;border-spacing:8px;min-width:980px;position:relative;z-index:2;}
+  th.grp{font-size:13px;font-weight:700;color:#fff;padding:8px 6px;border-radius:8px;text-align:center;}
+  td.area{font-size:13px;font-weight:700;color:var(--text);background:var(--panel2);
+    border-radius:8px;padding:8px 10px;white-space:nowrap;vertical-align:middle;
+    border-left:4px solid var(--line);min-width:96px;}
+  td.cell{background:var(--panel);border-radius:8px;padding:8px;vertical-align:top;min-width:150px;}
+  .card{position:relative;border-radius:7px;padding:7px 9px;margin:5px 0;font-size:13px;cursor:pointer;
+    color:#fff;line-height:1.3;border:2px solid transparent;transition:.12s;}
+  .card:hover{filter:brightness(1.13);}
+  .card small{display:block;color:rgba(255,255,255,.72);font-size:11px;margin-top:2px;}
+  .card.sel{outline:3px solid #fff;}
+  .card.up{border-color:var(--up);}
+  .card.down{border-color:var(--down);}
+  .card.dim{opacity:.22;}
+  #overlay{position:absolute;top:0;left:18px;z-index:1;pointer-events:none;overflow:visible;}
+  .empty{height:1px;}
+  /* side panel */
+  #panel{position:fixed;top:0;right:0;width:330px;height:100%;background:var(--panel);
+    border-left:1px solid var(--line);transform:translateX(100%);transition:.22s;overflow:auto;
+    padding:16px 18px;z-index:60;box-shadow:-10px 0 30px rgba(0,0,0,.35);}
+  #panel.open{transform:translateX(0);}
+  #panel h2{margin:0 0 5px;font-size:19px;}
+  #panel .tag{font-size:11px;padding:3px 9px;border-radius:12px;color:#fff;font-weight:600;}
+  #panel .close{position:absolute;top:12px;right:14px;background:none;border:none;color:var(--muted);font-size:24px;cursor:pointer;}
+  .sec{margin-top:16px;}
+  .sec h3{margin:0 0 7px;font-size:12px;letter-spacing:1px;color:var(--muted);}
+  .lk{font-size:12.5px;padding:6px 9px;border-radius:7px;margin:4px 0;background:#0f1729;border:1px solid var(--line);}
+  .lk b{color:#fff;cursor:pointer;} .lk b:hover{text-decoration:underline;}
+  .lk .via{color:var(--muted);}
+  .lk.up{border-left:3px solid var(--up);} .lk.down{border-left:3px solid var(--down);}
+  .chips{display:flex;flex-wrap:wrap;gap:5px;}
+  .chip{font-size:12px;padding:4px 8px;border-radius:6px;background:#0f1729;border:1px solid var(--line);}
+  .none{color:var(--muted);font-size:12px;}
+  .hint{color:var(--muted);font-size:12px;padding:0 26px 22px;line-height:1.6;}
+
+  .chip.ck{cursor:pointer;border-color:#3b5b86;}
+  .chip.ck:hover{background:#16233b;border-color:#5b82c0;}
+  .chip.ck::after{content:"›";color:var(--muted);margin-left:4px;transform:rotate(90deg);display:inline-block;}
+  #pop{position:fixed;display:none;z-index:80;background:#0b1322;border:1px solid var(--line);
+    border-radius:10px;padding:6px;min-width:200px;max-width:320px;max-height:62vh;overflow:auto;
+    box-shadow:0 12px 34px rgba(0,0,0,.55);}
+  #pop .ph{font-size:11.5px;color:var(--muted);margin:6px 6px 4px;letter-spacing:.4px;}
+  #pop .ph b{color:#fff;}
+  .popitem{display:flex;justify-content:space-between;gap:10px;align-items:center;
+    font-size:13px;padding:6px 9px;border-radius:7px;cursor:pointer;}
+  .popitem:hover{background:#1a2438;}
+  .popitem small{color:#fff;font-size:10px;padding:1px 7px;border-radius:8px;white-space:nowrap;}
+  .popitem .cur{background:#334155;color:#cbd5e1;font-size:10px;padding:1px 7px;border-radius:8px;}
+</style>
+</head>
+<body>
+<header>
+  <h1>專案管理（PM）流程架構總覽</h1>
+  <div class="sub">依「五大流程群組 × 知識領域」排列，共 51 個流程。<b>點任一流程方塊</b>即可看出它的依賴：上游（誰提供輸入）以綠框＋綠箭頭標出、下游（誰使用輸出）以藍框＋藍箭頭標出。</div>
+  <div class="legend" id="legend">
+    <span class="item"><span class="ar"></span>上游（輸入來源）</span>
+    <span class="item"><span class="ar d"></span>下游（輸出去向）</span>
+  </div>
+</header>
+
+<div class="flowbar" id="flowbar"></div>
+
+<div class="wrap" id="wrap">
+  <svg id="overlay"><defs>
+    <marker id="ah-up" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="var(--up)"/></marker>
+    <marker id="ah-down" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="var(--down)"/></marker>
+  </defs></svg>
+  <table id="matrix"></table>
+</div>
+<div class="hint">提示：面板中的<b>方法 / 輸入 / 輸出</b>若有「›」標記表示其他流程也用到，可點開查看是誰並跳轉。點空白處或按 Esc 取消選取。左→右為流程先後（起始→規劃→執行→監控→結束）；同一直行內由上而下也大致是依賴順序。</div>
+
+<div id="panel">
+  <button class="close" onclick="clearSel()">&times;</button>
+  <h2 id="p-name"></h2>
+  <div><span class="tag" id="p-tag"></span></div>
+  <div class="sec"><h3>⬅ 上游 · 提供本流程的輸入</h3><div id="p-up"></div></div>
+  <div class="sec"><h3>➡ 下游 · 使用本流程的輸出</h3><div id="p-down"></div></div>
+  <div class="sec"><h3>方法 / 工具技術</h3><div class="chips" id="p-me"></div></div>
+  <div class="sec"><h3>輸入</h3><div class="chips" id="p-in"></div></div>
+  <div class="sec"><h3>輸出</h3><div class="chips" id="p-out"></div></div>
+</div>
+
+<script>
+const GROUPS=[
+  {key:"init",name:"起始",color:"var(--c-init)"},
+  {key:"plan",name:"規劃",color:"var(--c-plan)"},
+  {key:"exec",name:"執行",color:"var(--c-exec)"},
+  {key:"mon", name:"監控",color:"var(--c-mon)"},
+  {key:"close",name:"結束",color:"var(--c-close)"},
+];
+const AREAS=["整合管理","範圍管理","時程管理","成本管理","品質管理","人力資源管理","溝通管理","風險管理","採購管理","關係人管理","生產與安全"];
+const P=[
+ {n:"可行性分析",g:"init",a:"整合管理",i:["專案提案"],o:["可行方案"],m:["經濟效益分析","非經濟效益分析","綜合"]},
+ {n:"發起專案",g:"init",a:"整合管理",i:["專案組合"],o:["專案案由","授權書","專案經理","專案團隊","專案辦公室"],m:["制定專案源由","制定授權書","指派專案經理","指派專案團隊","設立專案辦公室","啟動會議","階段審查"]},
+ {n:"目標規劃",g:"plan",a:"整合管理",i:["授權書","客戶需求"],o:["目標說明"],m:["審視授權書","客戶需求分析"]},
+ {n:"範圍規劃",g:"plan",a:"範圍管理",i:["目標說明","產品說明"],o:["範圍說明","範圍管理計畫"],m:["產品分析","執行方式選擇","關係人需求分析","會議"]},
+ {n:"WBS規劃",g:"plan",a:"範圍管理",i:["範圍說明"],o:["WBS","WBS辭典","範圍基準"],m:["拆解","模板"]},
+ {n:"OBS規劃",g:"plan",a:"人力資源管理",i:["WBS"],o:["OBS"],m:["人員指派","角色責任"]},
+ {n:"進度規劃",g:"plan",a:"時程管理",i:["WBS","範圍說明","授權書","合約"],o:["進度管理架構"],m:["會議","規劃方法選擇","同步工程"]},
+ {n:"活動定義",g:"plan",a:"時程管理",i:["進度管理架構","範圍說明","WBS"],o:["活動清單"],m:["拆解","模版","滾浪式規劃","會議"]},
+ {n:"工時估計",g:"plan",a:"時程管理",i:["活動清單","資源指派","歷史資料","風險因應","進度管理架構"],o:["活動工時","估計精度","時間儲備","估計基礎"],m:["類比估計法","三點估計法","參數估計法","完成量推估法","儲備分析","專家諮詢","會議"]},
+ {n:"工期估計",g:"plan",a:"時程管理",i:["活動清單","資源指派","歷史資料","風險因應","進度管理架構"],o:["活動工期"],m:["類比估計法","參數估計法","完成量推估法","專家諮詢","會議"]},
+ {n:"活動排序",g:"plan",a:"時程管理",i:["進度管理架構","活動清單","里程碑清單","風險因應"],o:["專案網路圖","甘特圖"],m:["執行順序分析","節點式圖解法","專案管理資訊系統"]},
+ {n:"進度制定",g:"plan",a:"時程管理",i:["進度管理架構","專案網路圖","活動工期","行事曆","風險因應計畫"],o:["專案進度","進度基準","進度管理計畫"],m:["圖解法","工期壓縮","資源負荷分析","資源最佳化","限制理論","專案管理資訊系統"]},
+ {n:"成本規劃",g:"plan",a:"成本管理",i:["WBS"],o:["成本管理架構"],m:["規劃方法選擇","會議"]},
+ {n:"成本估計",g:"plan",a:"成本管理",i:["成本管理架構","活動清單","資源需求","活動工時","資源單價","風險","歷史資料"],o:["活動成本","成本儲備","估計精度","估計基礎"],m:["類比估計法","參數估計","三值估計","由下往上估計","成本儲備分析","品質成本分析","採購報價分析"]},
+ {n:"預算編列",g:"plan",a:"成本管理",i:["成本管理架構","活動成本","合約","進度管理計畫","風險管理計畫"],o:["成本基準","資金需求","成本管理計畫"],m:["類比估計法","參數估計法","儲備量分析","由下往上估計","成本加總"]},
+ {n:"人力資源規劃",g:"plan",a:"人力資源管理",i:["WBS","活動工時","資源庫","專案界面"],o:["人力資源管理計畫"],m:["會議","人力需求分析","人格特質平衡","組織理論"]},
+ {n:"風險規劃",g:"plan",a:"風險管理",i:["WBS","風險角色責任","關係人期望"],o:["風險管理架構"],m:["會議"]},
+ {n:"風險辨識",g:"plan",a:"風險管理",i:["WBS","活動工時","活動工期","活動成本","績效報告","歷史資料","專案管理計畫","風險管理架構"],o:["風險清單","因應清單"],m:["文件審查","腦力激盪","數據分析","德菲法","訪談","根本原因分析","假設分析","魚骨圖","流程圖","檢查表","會議"]},
+ {n:"定性分析",g:"plan",a:"風險管理",i:["風險管理架構","風險清單","因應清單"],o:["定性風險排序","前20%風險清單","風險緊急性排序","定性風險趨勢"],m:["數據分析","風險優先數","製作機率衝擊矩陣","風險緊急性分析","會議"]},
+ {n:"定量分析",g:"plan",a:"風險管理",i:["風險管理架構","前20%風險清單"],o:["定量風險排序","達成專案目標機率","完成專案可能時間及成本","定量風險趨勢分析","風險因應計畫更新"],m:["專家訪談","數據分析","決策樹分析","蒙地卡羅模擬","其他定量分析"]},
+ {n:"風險因應",g:"plan",a:"風險管理",i:["風險管理架構","風險清單","因應清單","風險負責人","前20%風險清單","定量風險排序"],o:["風險管理計畫","風險因應計畫","風險因應","合約條款","殘留風險","二次風險","風險儲備","專案計畫更新"],m:["避險","降低","轉移","接受","開拓","分享","加強"]},
+ {n:"採購規劃",g:"plan",a:"採購管理",i:["WBS","範圍說明","資源需求","市場訊息","進度管理計畫","成本管理計畫"],o:["採購管理計畫","工作說明書"],m:["會議","自製外購分析","合約模式"]},
+ {n:"招標規劃",g:"plan",a:"採購管理",i:["採購管理計畫","工作說明書","進度管理計畫"],o:["招標文件","評選標準"],m:["標準模板","專家諮詢"]},
+ {n:"品質規劃",g:"plan",a:"品質管理",i:["範圍說明","產品說明","WBS"],o:["品質管理計畫","品質基準","查檢表","品質指標"],m:["會議","成本效益分析","品質成本分析","標竿學習","實驗流程","流程分析","六標準差"]},
+ {n:"關係人管理規劃",g:"plan",a:"關係人管理",i:["WBS","授權書","合約"],o:["關係人清單","關係人管理計畫"],m:["關係人分析","會議"]},
+ {n:"溝通規劃",g:"plan",a:"溝通管理",i:["WBS","關係人清單","溝通需求"],o:["溝通管理計畫"],m:["溝通需求分析","溝通模式","溝通方法","溝通技術"]},
+ {n:"生產規劃",g:"plan",a:"生產與安全",i:["產品規格","現有廠房設備"],o:["生產計劃","生產流程","需求設備清單","BOM表","供應鏈規劃","小量生產計劃"],m:["彈性製造系統評估","同步工程","品質管制系統","統計製造品管","精時製造","供應鏈管理","工程試產","製造成本評估"]},
+ {n:"安全規劃",g:"plan",a:"生產與安全",i:["關係人期望","WBS","安全需求","安全法規","歷史資料"],o:["安全管理計畫"],m:["安全需求分析","安全法規分析"]},
+ {n:"執行專案計畫",g:"exec",a:"整合管理",i:["專案計畫","各專案管理計畫"],o:["工作產出","計畫更新","專案績效","變更要求"],m:["專案會議","問題解決","衝突管理"]},
+ {n:"計畫變更",g:"exec",a:"整合管理",i:["專案計畫","績效報告","變更要求"],o:["專案計畫變更"],m:["變更管制系統","專案管理資訊系統"]},
+ {n:"績效監督",g:"exec",a:"整合管理",i:["專案績效"],o:["績效報告","變更要求","績效改善措施","計畫更新"],m:["掙值分析","團隊績效","個人績效","績效審查","差異分析","會議","專案管理資訊系統"]},
+ {n:"品質保證",g:"exec",a:"品質管理",i:["品質管理計畫","品質指標","品質基準","品質紀錄","績效報告"],o:["品質改善","變更要求","品質保證活動","糾正措施","預防措施"],m:["品質稽核","成本效益分析","品質成本分析","標竿學習","實驗設計","流程分析","破壞模式與效應分析","六標準差"]},
+ {n:"資訊傳遞",g:"exec",a:"溝通管理",i:["績效報告","溝通管理計畫","專案計畫"],o:["專案紀錄","口頭報告","書面報告","關係人意見"],m:["溝通模式","溝通方法","溝通技術","專案管理資訊系統","績效發布"]},
+ {n:"風險監督",g:"exec",a:"風險管理",i:["績效報告","風險因應計畫","風險清單","範圍變更"],o:["補救計畫","補強計畫","備用方案","變更要求"],m:["風險審查","因應措施稽核","掙值分析","技術績效分析","風險儲備分析","狀況會議"]},
+ {n:"人員招募",g:"exec",a:"人力資源管理",i:["專案進度","人力資源管理計畫","資源庫"],o:["人員指派","資源行事曆"],m:["人格特質評估","預先指派","借調","招募","虛擬團隊"]},
+ {n:"團隊建立",g:"exec",a:"人力資源管理",i:["人力資源管理計畫","人員指派","資源行事曆"],o:["團隊績效","專案計畫更新","變更要求"],m:["集中辦公","訓練","團隊建立活動","團隊公約","個人及團隊績效衡量","獎勵表揚","會議"]},
+ {n:"團隊管理",g:"exec",a:"人力資源管理",i:["專案管理計畫","人力資源管理計畫","團隊公約","人員指派","團隊績效"],o:["變更要求","團隊建立活動","人員訓練"],m:["績效審查","衝突管理","議題管理","專案管理資訊系統","其他管理運用"]},
+ {n:"招募（採購）",g:"exec",a:"採購管理",i:["招標文件","合格廠商名錄","進度管理計畫","合約","採購管理計畫"],o:["建議書","報價"],m:["招標公告","投標說明會"]},
+ {n:"廠商選擇",g:"exec",a:"採購管理",i:["建議書","報價","評選標準","專案進度"],o:["廠商","合約","專案進度更新"],m:["廠商選擇方法","最低成本評估","合約談判"]},
+ {n:"關係人管理",g:"exec",a:"關係人管理",i:["關係人管理計畫","溝通管理計畫","關係人清單","專案變更","績效報告"],o:["變更要求","關係人回饋","關係人管理計畫更新","溝通管理計畫更新"],m:["溝通方法","人際技巧","管理技巧","會議"]},
+ {n:"安全維護",g:"exec",a:"生產與安全",i:["安全管理計畫","突發安全事件"],o:["安全管理計畫更新","糾正措施","經驗教訓"],m:["安全處理活動","緊急應變"]},
+ {n:"變更控制",g:"mon",a:"整合管理",i:["專案計畫","績效基準","變更要求","績效報告"],o:["批准變更請求","專案計畫變更","專案基準變更"],m:["會議","變更管制系統","決策"]},
+ {n:"範圍驗證",g:"mon",a:"範圍管理",i:["範圍管理計畫","範圍基準","可交付成果","績效報告"],o:["正式允收","變更要求"],m:["檢驗","決策"]},
+ {n:"進度控制",g:"mon",a:"時程管理",i:["進度基準","專案進度","範圍基準","進度管理計畫","績效報告","變更要求"],o:["進度計畫更新","進度基準變更","進度管理計畫更新","進度預測","進度報告"],m:["績效審查","差異分析","變更管制系統","專案管理資訊系統","工期壓縮"]},
+ {n:"風險控制",g:"mon",a:"風險管理",i:["專案管理計畫","風險管理計畫","風險清單","新的風險"],o:["變更要求","經驗教訓","糾正措施"],m:["補救計畫","補強計畫","備用方案"]},
+ {n:"品質控制",g:"mon",a:"品質管理",i:["品質基準","品質管理計畫","品質指標","可交付成果","查檢表"],o:["品質紀錄","允收決定","重工","流程改善","變更要求"],m:["績效數據","抽樣","檢驗","魚骨圖","柏拉圖","管制圖","散佈圖","流程圖","直方圖","趨勢圖"]},
+ {n:"成本控制",g:"mon",a:"成本管理",i:["成本基準","成本管理計畫","專案成本","績效報告","變更要求"],o:["成本改善","成本變更","成本基準變更","專案計畫變更","成本預測"],m:["績效審查","差異分析","儲備量分析","成本改善措施","變更管制系統","專案管理資訊系統"]},
+ {n:"範圍控制",g:"mon",a:"範圍管理",i:["範圍基準","範圍管理計畫","績效報告","變更要求"],o:["範圍變更","範圍基準變更","進度基準變更","成本基準變更","範圍管理計畫變更","專案計畫變更"],m:["績效審查","差異分析","變更管制系統"]},
+ {n:"合約管理",g:"mon",a:"採購管理",i:["合約","績效報告","付款紀錄","已完成可交付成果"],o:["會議記錄","往來書信","合約變更","付款要求"],m:["績效審查","變更管制系統","付款系統","文件管理系統","違約賠償","替代爭議解決","訴訟"]},
+ {n:"關係人控制",g:"mon",a:"關係人管理",i:["關係人管理計畫","績效報告"],o:["專案計畫更新","變更要求","糾正措施"],m:["會議","溝通技術","人際關係技能","專案管理資訊系統"]},
+ {n:"合約結束",g:"close",a:"採購管理",i:["合約","專案績效","可交付成果"],o:["合約檔案","最終可交付產品","服務移交"],m:["合約稽核","業主簽收"]},
+];
+P.forEach((p,k)=>p.idx=k);
+const colorOf=k=>GROUPS.find(g=>g.key===k).color;
+
+// edges
+let edges=[];
+for(const A of P)for(const B of P){ if(A===B)continue;
+  const via=A.o.filter(x=>B.i.includes(x)); if(via.length) edges.push({a:A.idx,b:B.idx,via}); }
+const inE={},outE={}; P.forEach(p=>{inE[p.idx]=[];outE[p.idx]=[];});
+edges.forEach(e=>{inE[e.b].push(e);outE[e.a].push(e);});
+const methodUsers={},artIn={},artOut={};
+P.forEach(p=>{ (p.m||[]).forEach(mm=>(methodUsers[mm]=methodUsers[mm]||[]).push(p.idx));
+  p.i.forEach(x=>(artIn[x]=artIn[x]||[]).push(p.idx));
+  p.o.forEach(x=>(artOut[x]=artOut[x]||[]).push(p.idx)); });
+function chipHTML(v,k,idx){
+  let ck;
+  if(k==='me') ck=(methodUsers[v]||[]).some(x=>x!==idx);
+  else ck=((artIn[v]||[]).concat(artOut[v]||[])).some(x=>x!==idx);
+  return ck ? "<span class='chip ck' data-k='"+k+"' data-v=\""+v+"\">"+v+"</span>"
+            : "<span class='chip'>"+v+"</span>";
+}
+function gBadge(i){var g=GROUPS.find(x=>x.key===P[i].g);return "<small style='background:"+g.color+"'>"+g.name+"</small>";}
+function itemRow(i,cur){
+  return "<div class='popitem' onclick='jumpFromPop(event,"+i+")'>"+P[i].n+
+    (i===cur?"<span class='cur'>目前</span>":gBadge(i))+"</div>";
+}
+function showMethodPop(anchor,mm){
+  var cur=selected, u=methodUsers[mm]||[];
+  var html="<div class='ph'>使用方法「<b>"+mm+"</b>」的流程（"+u.length+"）</div>"+u.map(i=>itemRow(i,cur)).join("");
+  openPop(anchor,html);
+}
+function showArtifactPop(anchor,name){
+  var cur=selected, outs=artOut[name]||[], ins=artIn[name]||[];
+  var html="<div class='ph'>交付物「<b>"+name+"</b>」</div>";
+  html+="<div class='ph'>產出此項（輸出）："+(outs.length?"":"無")+"</div>"+outs.map(i=>itemRow(i,cur)).join("");
+  html+="<div class='ph'>使用此項（輸入）："+(ins.length?"":"無")+"</div>"+ins.map(i=>itemRow(i,cur)).join("");
+  openPop(anchor,html);
+}
+function openPop(anchorEl,html){
+  var pop=document.getElementById("pop");
+  pop.innerHTML=html; pop.style.display="block"; pop.style.left="0px"; pop.style.top="0px";
+  var r=anchorEl.getBoundingClientRect(), pw=pop.offsetWidth, ph=pop.offsetHeight;
+  var x=r.left, y=r.bottom+6;
+  if(x+pw>innerWidth-8) x=innerWidth-8-pw;
+  if(y+ph>innerHeight-8) y=r.top-6-ph;
+  pop.style.left=Math.max(8,x)+"px"; pop.style.top=Math.max(8,y)+"px";
+}
+function hidePop(){document.getElementById("pop").style.display="none";}
+function jumpFromPop(ev,i){ev.stopPropagation();hidePop();selectNode(i);}
+
+
+// flow bar
+const fb=document.getElementById("flowbar");
+GROUPS.forEach((g,i)=>{ fb.insertAdjacentHTML("beforeend",`<span class="step" style="background:${g.color}">${g.name}</span>`);
+  if(i<GROUPS.length-1)fb.insertAdjacentHTML("beforeend",`<span class="arrow">➜</span>`); });
+
+// matrix
+const t=document.getElementById("matrix");
+let head="<tr><th></th>"+GROUPS.map(g=>`<th class='grp' style='background:${g.color}'>${g.name}群組</th>`).join("")+"</tr>";
+let rows="";
+AREAS.forEach(area=>{
+  let r=`<tr><td class='area'>${area}</td>`;
+  GROUPS.forEach(g=>{
+    const items=P.filter(p=>p.a===area&&p.g===g.key);
+    r+= items.length? "<td class='cell'>"+items.map(p=>
+      `<div class='card' id='c${p.idx}' style='background:${colorOf(p.g)}' onclick='selectNode(${p.idx},event)'>${p.n}<small>${p.o.slice(0,2).join("、")}${p.o.length>2?"…":""}</small></div>`).join("")+"</td>"
+      : "<td class='cell'><div class='empty'></div></td>";
+  });
+  t.innerHTML+=""; rows+=r+"</tr>";
+});
+t.innerHTML=head+rows;
+
+// overlay sizing
+const wrap=document.getElementById("wrap"), svg=document.getElementById("overlay");
+function sizeOverlay(){ svg.setAttribute("width",t.scrollWidth); svg.setAttribute("height",t.scrollHeight);
+  svg.style.height=t.scrollHeight+"px"; svg.style.width=t.scrollWidth+"px"; }
+window.addEventListener("load",sizeOverlay); window.addEventListener("resize",()=>{sizeOverlay();if(selected!=null)draw(selected);});
+sizeOverlay();
+
+let selected=null;
+function center(idx){
+  const c=document.getElementById("c"+idx).getBoundingClientRect();
+  const s=svg.getBoundingClientRect();
+  return {l:c.left-s.left,r:c.right-s.left,t:c.top-s.top,b:c.bottom-s.top,
+          cx:(c.left+c.right)/2-s.left, cy:(c.top+c.bottom)/2-s.top};
+}
+function clearGfx(){ [...svg.querySelectorAll("path,text")].forEach(e=>e.remove()); }
+function draw(idx){
+  clearGfx();
+  const N=center(idx);
+  const drawArrow=(from,to,cls)=>{
+    const a=center(from),b=center(to);
+    // anchor on horizontal sides for left-right, else vertical
+    let x1,y1,x2,y2;
+    if(b.cx>=a.cx){ x1=a.r; x2=b.l; } else { x1=a.l; x2=b.r; }
+    y1=a.cy; y2=b.cy;
+    const dx=Math.abs(x2-x1), mx=(x1+x2)/2;
+    const p=document.createElementNS("http://www.w3.org/2000/svg","path");
+    p.setAttribute("d",`M${x1},${y1} C ${mx},${y1} ${mx},${y2} ${x2},${y2}`);
+    p.setAttribute("fill","none");
+    p.setAttribute("stroke",cls==="up"?"var(--up)":"var(--down)");
+    p.setAttribute("stroke-width","2.2");
+    p.setAttribute("marker-end",cls==="up"?"url(#ah-up)":"url(#ah-down)");
+    p.setAttribute("opacity",".9");
+    svg.appendChild(p);
+  };
+  inE[idx].forEach(e=>drawArrow(e.a,idx,"up"));
+  outE[idx].forEach(e=>drawArrow(idx,e.b,"down"));
+}
+function selectNode(idx,ev){
+  if(ev)ev.stopPropagation();
+  selected=idx;
+  const ups=new Set(inE[idx].map(e=>e.a)), downs=new Set(outE[idx].map(e=>e.b));
+  P.forEach(p=>{
+    const el=document.getElementById("c"+p.idx);
+    el.classList.remove("sel","up","down","dim");
+    if(p.idx===idx) el.classList.add("sel");
+    else if(ups.has(p.idx)) el.classList.add("up");
+    else if(downs.has(p.idx)) el.classList.add("down");
+    else el.classList.add("dim");
+  });
+  draw(idx); openPanel(idx);
+}
+function clearSel(){
+  selected=null; clearGfx();
+  P.forEach(p=>document.getElementById("c"+p.idx).classList.remove("sel","up","down","dim"));
+  document.getElementById("panel").classList.remove("open");
+}
+function openPanel(idx){
+  const p=P[idx], g=GROUPS.find(x=>x.key===p.g);
+  document.getElementById("p-name").textContent=p.n;
+  const tag=document.getElementById("p-tag"); tag.textContent=g.name+"群組 · "+p.a; tag.style.background=g.color;
+  document.getElementById("p-up").innerHTML = inE[idx].length? inE[idx].map(e=>
+    `<div class='lk up'><b onclick='selectNode(${e.a})'>${P[e.a].n}</b> <span class='via'>→ ${e.via.join("、")}</span></div>`).join("") : "<div class='none'>無（起點流程）</div>";
+  document.getElementById("p-down").innerHTML = outE[idx].length? outE[idx].map(e=>
+    `<div class='lk down'><b onclick='selectNode(${e.b})'>${P[e.b].n}</b> <span class='via'>← ${e.via.join("、")}</span></div>`).join("") : "<div class='none'>無（終點交付）</div>";
+  document.getElementById("p-me").innerHTML=(p.m||[]).map(x=>chipHTML(x,"me",idx)).join("");
+  document.getElementById("p-in").innerHTML=p.i.map(x=>chipHTML(x,"in",idx)).join("");
+  document.getElementById("p-out").innerHTML=p.o.map(x=>chipHTML(x,"out",idx)).join("");
+  document.getElementById("panel").classList.add("open");
+}
+document.getElementById("panel").addEventListener("click",e=>{
+  var c=e.target.closest(".chip.ck"); if(!c)return; e.stopPropagation();
+  if(c.dataset.k==="me") showMethodPop(c,c.dataset.v); else showArtifactPop(c,c.dataset.v);
+});
+document.addEventListener("click",e=>{ if(!e.target.closest("#pop")&&!e.target.closest(".chip.ck")) hidePop(); });
+document.body.addEventListener("click",e=>{ if(!e.target.closest(".card")&&!e.target.closest("#panel")&&!e.target.closest("#pop")) clearSel(); });
+document.addEventListener("keydown",e=>{ if(e.key==="Escape")clearSel(); });
+wrap.addEventListener("scroll",()=>{ if(selected!=null)draw(selected); });
+</script>
+<div id="pop"></div>
+</body>
+</html>
